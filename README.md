@@ -23,6 +23,9 @@ Open [`notebooks/colab_run.ipynb`](notebooks/colab_run.ipynb) in Colab
 (File → Open notebook → GitHub → `liuyihao4fun/cs260d-pruning-coreset`) and run the cells top to bottom.
 Checkpoints and results are written to Google Drive (`MyDrive/cs260d/`).
 
+The notebook embeds a copy of `src/`, so Colab needs no GitHub token. **After changing anything in
+`src/`, run `python scripts/build_notebook.py` and commit the regenerated notebook too.**
+
 ## Command line
 
 ```bash
