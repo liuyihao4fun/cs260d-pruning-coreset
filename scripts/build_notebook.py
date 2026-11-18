@@ -40,6 +40,7 @@ drive.mount('/content/drive')
 
 WORK = '/content/drive/MyDrive/cs260d'        # shared folder for checkpoint + results
 CKPT = f'{WORK}/resnet18_cifar10.pt'
+DATA = f'{WORK}/data'                         # CIFAR cached on Drive: downloaded once, reused by later sessions
 NAME = 'me'                                   # <-- change to your name so teammates' results don't collide
 RESULTS = f'{WORK}/results_{NAME}.jsonl'
 import os; os.makedirs(WORK, exist_ok=True)
@@ -57,13 +58,13 @@ md("## 3. Train the dense model (once — skipped if the checkpoint already exis
 code("""
 import os
 if not os.path.exists(CKPT):
-    !python -m src.train_dense --dataset cifar10 --epochs 40 --data_root /content/data --out "{CKPT}"
+    !python -m src.train_dense --dataset cifar10 --epochs 40 --data_root "{DATA}" --out "{CKPT}"
 else:
     print('checkpoint exists:', CKPT)
 """)
 md("## 4. Smoke test: one run (90% sparsity, CRAIG, 10% data, 5 epochs)")
 code("""
-!python -m src.finetune --ckpt "{CKPT}" --data_root /content/data --sparsity 0.9 --method craig \\
+!python -m src.finetune --ckpt "{CKPT}" --data_root "{DATA}" --sparsity 0.9 --method craig \\
     --frac 0.1 --epochs 5 --results /content/smoke.jsonl
 """)
 md("""
@@ -75,7 +76,7 @@ Split work across teammates with `SHARD` = 0 / 1 / 2 and `NUM_SHARDS` = 3.
 """)
 code("""
 SHARD, NUM_SHARDS = 0, 1
-!python -m src.run_grid --ckpt "{CKPT}" --data_root /content/data --results "{RESULTS}" \\
+!python -m src.run_grid --ckpt "{CKPT}" --data_root "{DATA}" --results "{RESULTS}" \\
     --sparsities 0.9 --methods full random craig el2n damage_topk damage_fl \\
     --fracs 0.05 0.1 0.2 --seeds 0 1 2 --epochs 30 \\
     --shard {SHARD} --num_shards {NUM_SHARDS}
