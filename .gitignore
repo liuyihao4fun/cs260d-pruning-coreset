@@ -8,4 +8,6 @@ __pycache__/
 .DS_Store
 results/*
 !results/.gitkeep
+!results/*.csv
+!results/*.png
 /tmp_smoke/
