@@ -66,8 +66,21 @@ def load_dense(a, device):
     return model
 
 
+def weight_stats(w, probs, y, epoch):
+    """Diagnostics for one selection: how skewed the per-sample training weights are,
+    and how well the current model already fits the full training set."""
+    w = w.float()
+    top = w.sort(descending=True).values
+    k1 = max(1, len(w) // 100)
+    s = {"epoch": epoch, "w_max_over_mean": round(float(w.max() / w.mean()), 1),
+         "w_top1pct_share": round(float(top[:k1].sum() / w.sum()), 3)}
+    if probs is not None:
+        s["train_acc_before_select"] = round(float((probs.argmax(1) == y).float().mean()) * 100, 2)
+    return s
+
+
 def make_subset(a, model, data, dense_loss, device, epoch=0):
-    """Returns (indices, weights, seconds spent selecting).
+    """Returns (indices, weights, seconds spent selecting, weight diagnostics).
 
     `epoch` offsets the random generator so that re-selection (random method) draws a
     new subset each time; epoch 0 keeps the original seed, so one-shot runs are unchanged.
@@ -76,7 +89,7 @@ def make_subset(a, model, data, dense_loss, device, epoch=0):
     t0 = time.time()
     if a.method == "full":
         idx = torch.arange(len(y_tr), device=device)
-        return idx, torch.ones(len(idx), device=device), 0.0
+        return idx, torch.ones(len(idx), device=device), 0.0, {}
     loss, probs, feats = per_sample_outputs(model, x_tr, y_tr, a.dataset, device)
     ctx = SelectionContext(y=y_tr, num_classes=NUM_CLASSES[a.dataset], loss=loss, probs=probs,
                            feats=feats, dense_loss=dense_loss, damage_alpha=a.damage_alpha,
@@ -86,7 +99,8 @@ def make_subset(a, model, data, dense_loss, device, epoch=0):
         w = torch.ones_like(w)
     if device == "cuda":
         torch.cuda.synchronize()
-    return idx, w, time.time() - t0
+    dt = time.time() - t0
+    return idx, w, dt, weight_stats(w, probs, y_tr, epoch)
 
 
 def run(a, data=None, verbose=True):
@@ -106,10 +120,12 @@ def run(a, data=None, verbose=True):
     sparsity = measure_sparsity(model)
     pruned_acc = evaluate(model, x_te, y_te, a.dataset, device)
 
-    idx, w, sel_time = make_subset(a, model, data, dense_loss, device)
+    idx, w, sel_time, st = make_subset(a, model, data, dense_loss, device)
+    sel_stats = [st]
     if verbose:
         print(f"[{run_key(a)}] dense {dense_acc:.2f}% -> pruned {pruned_acc:.2f}% "
               f"(sparsity {sparsity:.3f}); subset {len(idx)} samples, selection {sel_time:.1f}s", flush=True)
+        print(f"  weights: {st}", flush=True)
 
     loader = GpuLoader(x_tr, y_tr, a.dataset, a.batch_size, train=True, weights=w, indices=idx)
     opt = torch.optim.SGD(model.parameters(), lr=a.lr, momentum=0.9, weight_decay=a.wd)
@@ -120,8 +136,11 @@ def run(a, data=None, verbose=True):
     curve, train_time, steps = [], 0.0, 0
     for ep in range(a.epochs):
         if a.reselect_every and ep > 0 and ep % a.reselect_every == 0:
-            idx, w, t = make_subset(a, model, data, dense_loss, device, epoch=ep)
+            idx, w, t, st = make_subset(a, model, data, dense_loss, device, epoch=ep)
             sel_time += t
+            sel_stats.append(st)
+            if verbose:
+                print(f"  weights: {st}", flush=True)
             loader = GpuLoader(x_tr, y_tr, a.dataset, a.batch_size, train=True, weights=w, indices=idx)
         model.train()
         t0 = time.time()
@@ -149,7 +168,7 @@ def run(a, data=None, verbose=True):
         "n_selected": int(len(idx)), "measured_sparsity": round(sparsity, 4),
         "dense_acc": round(dense_acc, 2), "pruned_acc": round(pruned_acc, 2),
         "final_acc": curve[-1], "best_acc": max(curve), "curve": curve,
-        "steps": steps, "selection_time": round(sel_time, 2), "train_time": round(train_time, 2),
+        "sel_stats": sel_stats, "steps": steps, "selection_time": round(sel_time, 2), "train_time": round(train_time, 2),
         "device": torch.cuda.get_device_name() if device == "cuda" else device,
     }
     append_jsonl(a.results, record)

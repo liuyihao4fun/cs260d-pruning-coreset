@@ -93,7 +93,20 @@ code("""
     --sparsities 0.9 0.95 0.98 --methods random craig damage_fl \\
     --fracs 0.05 0.1 0.2 --seeds 0 1 2 --epochs 30 --reselect_every 5
 """)
-md("## 7. Plot (reads every teammate's results file in the Drive folder)")
+md("""
+## 7. Diagnostic: how skewed are CRAIG weights when re-selecting?
+
+Re-selected CRAIG / damage_fl runs sometimes collapse right after a re-selection. Each run now
+prints `weights: {...}` at every selection: max weight / mean weight, the share of total weight
+held by the top 1% of selected samples, and the model's training accuracy before selecting.
+Four cases: two that collapsed, one stable control (5% data), one 98%-sparsity case.
+Results go to a separate file so the main results are untouched.
+""")
+code("""
+for sp, m, fr, sd in [(0.9, "craig", 0.2, 2), (0.9, "craig", 0.05, 0), (0.9, "damage_fl", 0.2, 0), (0.98, "craig", 0.2, 0)]:
+    !python -m src.finetune --ckpt "{CKPT}" --data_root "{DATA}" --results "{WORK}/results_diag.jsonl" --sparsity {sp} --method {m} --frac {fr} --seed {sd} --epochs 30 --reselect_every 5 --tag diag
+""")
+md("## 8. Plot (reads every teammate's results file in the Drive folder)")
 code("""
 !python -m src.plot --results {WORK}/results_*.jsonl --out {WORK}/figures
 from IPython.display import Image
