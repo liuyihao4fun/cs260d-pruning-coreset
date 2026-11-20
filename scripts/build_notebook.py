@@ -77,11 +77,23 @@ Split work across teammates with `SHARD` = 0 / 1 / 2 and `NUM_SHARDS` = 3.
 code("""
 SHARD, NUM_SHARDS = 0, 1
 !python -m src.run_grid --ckpt "{CKPT}" --data_root "{DATA}" --results "{RESULTS}" \\
-    --sparsities 0.9 --methods full random craig el2n damage_topk damage_fl \\
+    --sparsities 0.9 0.95 0.98 --methods full random craig el2n damage_topk damage_fl \\
     --fracs 0.05 0.1 0.2 --seeds 0 1 2 --epochs 30 \\
     --shard {SHARD} --num_shards {NUM_SHARDS}
 """)
-md("## 6. Plot (reads every teammate's results file in the Drive folder)")
+md("""
+## 6. Extra: re-select the subset every 5 epochs
+
+Same 30-epoch budget, but the subset is re-chosen with the current model every 5 epochs.
+Random is re-drawn too, so all three methods see the same amount of distinct data.
+Keys get an `_rs5` suffix, so these never collide with the one-shot runs above.
+""")
+code("""
+!python -m src.run_grid --ckpt "{CKPT}" --data_root "{DATA}" --results "{RESULTS}" \\
+    --sparsities 0.9 0.95 0.98 --methods random craig damage_fl \\
+    --fracs 0.05 0.1 0.2 --seeds 0 1 2 --epochs 30 --reselect_every 5
+""")
+md("## 7. Plot (reads every teammate's results file in the Drive folder)")
 code("""
 !python -m src.plot --results {WORK}/results_*.jsonl --out {WORK}/figures
 from IPython.display import Image

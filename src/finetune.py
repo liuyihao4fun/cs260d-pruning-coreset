@@ -66,8 +66,12 @@ def load_dense(a, device):
     return model
 
 
-def make_subset(a, model, data, dense_loss, device):
-    """Returns (indices, weights, seconds spent selecting)."""
+def make_subset(a, model, data, dense_loss, device, epoch=0):
+    """Returns (indices, weights, seconds spent selecting).
+
+    `epoch` offsets the random generator so that re-selection (random method) draws a
+    new subset each time; epoch 0 keeps the original seed, so one-shot runs are unchanged.
+    """
     x_tr, y_tr = data[0], data[1]
     t0 = time.time()
     if a.method == "full":
@@ -76,7 +80,7 @@ def make_subset(a, model, data, dense_loss, device):
     loss, probs, feats = per_sample_outputs(model, x_tr, y_tr, a.dataset, device)
     ctx = SelectionContext(y=y_tr, num_classes=NUM_CLASSES[a.dataset], loss=loss, probs=probs,
                            feats=feats, dense_loss=dense_loss, damage_alpha=a.damage_alpha,
-                           generator=torch.Generator().manual_seed(a.seed))
+                           generator=torch.Generator().manual_seed(a.seed + 1000 * epoch))
     idx, w = select(a.method, ctx, a.frac)
     if a.no_weights:
         w = torch.ones_like(w)
@@ -116,7 +120,7 @@ def run(a, data=None, verbose=True):
     curve, train_time, steps = [], 0.0, 0
     for ep in range(a.epochs):
         if a.reselect_every and ep > 0 and ep % a.reselect_every == 0:
-            idx, w, t = make_subset(a, model, data, dense_loss, device)
+            idx, w, t = make_subset(a, model, data, dense_loss, device, epoch=ep)
             sel_time += t
             loader = GpuLoader(x_tr, y_tr, a.dataset, a.batch_size, train=True, weights=w, indices=idx)
         model.train()
