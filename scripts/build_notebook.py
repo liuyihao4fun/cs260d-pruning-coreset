@@ -106,7 +106,21 @@ code("""
 for sp, m, fr, sd in [(0.9, "craig", 0.2, 2), (0.9, "craig", 0.05, 0), (0.9, "damage_fl", 0.2, 0), (0.98, "craig", 0.2, 0)]:
     !python -m src.finetune --ckpt "{CKPT}" --data_root "{DATA}" --results "{WORK}/results_diag.jsonl" --sparsity {sp} --method {m} --frac {fr} --seed {sd} --epochs 30 --reselect_every 5 --tag diag
 """)
-md("## 8. Plot (reads every teammate's results file in the Drive folder)")
+md("""
+## 8. Equal-compute baseline: full data, fewer epochs
+
+A 20% subset for 30 epochs is about 2370 SGD steps; full data for 6 epochs is about 2346.
+A 10% subset for 30 epochs (about 1200 steps) matches full data for 3 epochs (about 1170).
+These runs answer whether selecting a subset beats simply training on all data for fewer epochs
+at the same compute. Keys end in `_ep6` / `_ep3`, so they never collide with the 30-epoch runs.
+""")
+code("""
+!python -m src.run_grid --ckpt "{CKPT}" --data_root "{DATA}" --results "{RESULTS}" \\
+    --sparsities 0.9 0.95 0.98 --methods full --seeds 0 1 2 --epochs 6
+!python -m src.run_grid --ckpt "{CKPT}" --data_root "{DATA}" --results "{RESULTS}" \\
+    --sparsities 0.9 0.95 0.98 --methods full --seeds 0 1 2 --epochs 3
+""")
+md("## 9. Plot (reads every teammate's results file in the Drive folder)")
 code("""
 !python -m src.plot --results {WORK}/results_*.jsonl --out {WORK}/figures
 from IPython.display import Image
