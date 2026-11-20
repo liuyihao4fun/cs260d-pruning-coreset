@@ -17,7 +17,7 @@ Pipeline: dense ResNet-18 (CIFAR-10, 93.67%) → global magnitude pruning (accur
 | `damage_topk` | samples whose loss increased most due to pruning |
 | `damage_fl` | **ours**: CRAIG objective where each sample's coverage is weighted by `alpha + damage_i / mean(damage)` |
 
-## Experiments (325 runs)
+## Experiments (343 runs)
 
 | part | grid | runs |
 |---|---|---|
@@ -25,27 +25,30 @@ Pipeline: dense ResNet-18 (CIFAR-10, 93.67%) → global magnitude pruning (accur
 | Training budget | same grid at 15 epochs, sparsity {95, 98}% | 96 |
 | Re-selection (extra) | subset re-chosen every 5 epochs: sparsity {90, 95, 98}% × {random, craig, damage_fl} × {5, 10, 20}%, 3 seeds, 30 epochs | 81 |
 | Weight diagnostics (extra) | 4 re-selection runs that log how skewed the CRAIG weights are at each selection | 4 |
+| Equal compute (extra) | full data for 6 / 3 epochs (same SGD steps as a 20% / 10% subset for 30 epochs), 3 sparsities, 3 seeds | 18 |
 
 Fine-tuning: SGD (lr 0.01, momentum 0.9, wd 5e-4), batch 128, cosine schedule, random crop + flip.
 Full-data runs use the same number of epochs, i.e. about 5× more steps than the 20% subsets.
 
 ## Results
 
-**In short:** coverage matters more than difficulty. Class-balanced random selection, especially when
-re-drawn every few epochs, gives the best accuracy at the lowest selection cost.
+**In short:** when only a small subset of the data can be used, coverage matters more than difficulty,
+and class-balanced random selection re-drawn every few epochs is the best strategy we tested.
+Subset selection does not save compute, though: with the same number of SGD steps, fine-tuning on
+all the data for fewer epochs beats every subset strategy.
 
 ![accuracy vs data fraction](results/acc_vs_frac.png)
 
 Test accuracy (%) with 20% of the data, 30 epochs, mean of 3 seeds:
 
-| sparsity | full data | random | craig | damage_fl (ours) | random, re-selected every 5 epochs |
-|---|---|---|---|---|---|
-| 90% | 93.73 | 92.55 | 92.38 | 92.43 | **93.03** |
-| 95% | 93.43 | 91.26 | 91.29 | 91.72 | **92.37** |
-| 98% | 92.36 | 88.32 | 87.99 | 88.24 | **90.37** |
+| sparsity | full data, 30 ep | full data, 6 ep (same steps) | random | craig | damage_fl (ours) | random, re-selected every 5 ep |
+|---|---|---|---|---|---|---|
+| 90% | 93.73 | **93.22** | 92.55 | 92.38 | 92.43 | 93.03 |
+| 95% | 93.43 | **92.65** | 91.26 | 91.29 | 91.72 | 92.37 |
+| 98% | 92.36 | **90.83** | 88.32 | 87.99 | 88.24 | 90.37 |
 
-- **Little data is enough:** 20% of the data comes within 1.2–4.0 points of full-data fine-tuning,
-  at about 1/5 of the training time.
+- **Little data is enough:** 20% of the data comes within 1.2–4.0 points of full-data fine-tuning
+  with the same number of epochs (1/5 of the steps).
 - **Hard samples fail:** EL2N and damage_topk fall 20+ points behind random at 98% sparsity, 5% data.
 - **Ours vs CRAIG vs random:** damage_fl ≥ CRAIG in 8 of 9 settings, but random is best in 7 of 9;
   damage_fl wins clearly only at 95% sparsity, 20% data (+0.46).
@@ -54,9 +57,13 @@ Test accuracy (%) with 20% of the data, 30 epochs, mean of 3 seeds:
   cluster-size weights grow to 100–450× the mean once most samples are learned
   ([diagnostics](results/reselect_diag.csv)). [CREST](https://github.com/YuYang0901/CREST) avoids this
   by selecting only unlearned examples in small random pools and re-selecting often.
+- **Equal compute (extra):** full data for 6 epochs (same steps as 20% × 30 epochs) beats the best
+  one-shot subset by 0.7–2.5 points and random re-selection by 0.2–0.5; even 3 epochs (half the steps)
+  beats the best one-shot 20% subset. So subsets help when the *data* is limited, not to save compute
+  ([equal_compute_full.csv](results/equal_compute_full.csv)).
 - **Limits:** one model and dataset, last-layer gradient proxy, alpha = 1 only, no CREST implementation.
 
-Per-run numbers are in [`results/`](results/) (`all_runs.csv`, `reselect_runs.csv`, `reselect_diag.csv`);
+Per-run numbers are in [`results/`](results/) (`all_runs.csv`, `reselect_runs.csv`, `reselect_diag.csv`, `equal_compute_full.csv`);
 details and analysis are in the report.
 
 ## Quick start (Colab)
@@ -64,7 +71,7 @@ details and analysis are in the report.
 Open [`notebooks/colab_run.ipynb`](notebooks/colab_run.ipynb) in Colab
 (File → Open notebook → GitHub → `liuyihao4fun/cs260d-pruning-coreset`) and run the cells top to bottom.
 Checkpoints and results are written to Google Drive (`MyDrive/cs260d/`).
-Sections 6 and 7 of the notebook run the re-selection grid and the weight diagnostics.
+Sections 6–8 of the notebook run the re-selection grid, the weight diagnostics and the equal-compute baseline.
 
 The notebook embeds a copy of `src/`, so Colab needs no GitHub token. **After changing anything in
 `src/`, run `python scripts/build_notebook.py` and commit the regenerated notebook too.**
@@ -117,6 +124,7 @@ results/
   acc_vs_frac.png, gap_to_random.png, epochs_15_vs_30.png
   reselect_runs.csv, reselect_summary.csv, reselect_curves.csv, reselect_*.png
   reselect_diag.csv                    CRAIG weight skew at each re-selection
+  equal_compute_full.csv               full data for 6 / 3 epochs (equal-step baseline)
 ```
 
 The raw per-run JSON lines (with full accuracy curves) live on Google Drive; the CSVs here are exports.

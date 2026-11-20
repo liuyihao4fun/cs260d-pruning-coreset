@@ -1,0 +1,19 @@
+sparsity,method,frac,epochs,seed,final_acc,train_time,gpu,matches_steps_of
+0.9,full,1.0,6,0,93.24,115,T4,20% subset x 30 epochs
+0.9,full,1.0,6,1,93.13,118,T4,20% subset x 30 epochs
+0.9,full,1.0,6,2,93.29,117,T4,20% subset x 30 epochs
+0.95,full,1.0,6,0,92.67,117,T4,20% subset x 30 epochs
+0.95,full,1.0,6,1,92.58,117,T4,20% subset x 30 epochs
+0.95,full,1.0,6,2,92.70,117,T4,20% subset x 30 epochs
+0.98,full,1.0,6,0,91.08,116,T4,20% subset x 30 epochs
+0.98,full,1.0,6,1,90.72,116,T4,20% subset x 30 epochs
+0.98,full,1.0,6,2,90.70,116,T4,20% subset x 30 epochs
+0.9,full,1.0,3,0,93.10,59,T4,10% subset x 30 epochs
+0.9,full,1.0,3,1,93.16,59,T4,10% subset x 30 epochs
+0.9,full,1.0,3,2,92.99,59,T4,10% subset x 30 epochs
+0.95,full,1.0,3,0,92.32,59,T4,10% subset x 30 epochs
+0.95,full,1.0,3,1,92.27,59,T4,10% subset x 30 epochs
+0.95,full,1.0,3,2,92.13,58,T4,10% subset x 30 epochs
+0.98,full,1.0,3,0,89.50,58,T4,10% subset x 30 epochs
+0.98,full,1.0,3,1,89.48,58,T4,10% subset x 30 epochs
+0.98,full,1.0,3,2,89.26,58,T4,10% subset x 30 epochs
