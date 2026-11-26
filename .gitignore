@@ -11,3 +11,4 @@ results/*
 !results/*.csv
 !results/*.png
 /tmp_smoke/
+!results/raw/

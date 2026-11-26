@@ -135,9 +135,23 @@ results/
   reselect_runs.csv, reselect_summary.csv, reselect_curves.csv, reselect_*.png
   reselect_diag.csv                    CRAIG weight skew at each re-selection
   equal_compute_full.csv               full data for 6 / 3 epochs (equal-step baseline)
+  raw/results_me.jsonl                 raw record of all 339 runs (config, accuracy curve, timing)
+  raw/results_diag.jsonl               raw record of the 4 weight-diagnostic runs
 ```
 
-The raw per-run JSON lines (with full accuracy curves) live on Google Drive; the CSVs here are exports.
+The CSVs are exports of the raw per-run JSON lines in `results/raw/` (343 records, one per run, with full accuracy curves).
+
+**Dense checkpoint.** All runs start from one dense ResNet-18 (93.67%), published as a release asset rather than in git:
+
+```bash
+# needs repo access: run `gh auth login` first (the repo may be private)
+gh release download checkpoint-v1 -R liuyihao4fun/cs260d-pruning-coreset -D checkpoints
+shasum -a 256 checkpoints/resnet18_cifar10.pt   # 4e9906b77a825e706931c6259997cd2baf3a8980c9c0d4b46945386ed52daebf
+```
+
+Without the `gh` CLI, sign in to GitHub and download `resnet18_cifar10.pt` from the
+[checkpoint-v1 release page](https://github.com/liuyihao4fun/cs260d-pruning-coreset/releases/tag/checkpoint-v1).
+In Colab, upload it to your Drive folder (for example `MyDrive/cs260d/`) and point `--ckpt` at it.
 
 ## Result storage conventions
 - Model weights and datasets never go into git (`.gitignore`); keep them on Drive.
