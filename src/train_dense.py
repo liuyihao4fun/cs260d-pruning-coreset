@@ -3,7 +3,7 @@
     python -m src.train_dense --dataset cifar10 --epochs 40 --out checkpoints/resnet18_cifar10.pt
 
 ~40 epochs reaches roughly 94-95% on CIFAR-10. Do this ONCE and save the
-checkpoint to Google Drive; all teammates then reuse the same file.
+checkpoint to Google Drive; subsequent runs reuse the same file.
 """
 import argparse
 import os

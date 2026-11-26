@@ -1,6 +1,6 @@
 # Colab：第一阶段实验审计版本
 
-使用 `fix/experiment-audit` 分支和队友已有的 dense checkpoint。本指南不会训练 dense model，也不会启动完整历史网格。历史 CSV/图片及原 Notebook（`notebooks/colab_run_legacy.ipynb`）保持不变。
+使用 `fix/experiment-audit` 分支和已有的 dense checkpoint。本指南不会训练 dense model，也不会启动完整历史网格。历史 CSV/图片保持不变，旧版 Notebook 保存在 `notebooks/colab_run_legacy.ipynb`。
 
 ## 1. 选择 GPU、Clone 分支、安装依赖
 
@@ -37,17 +37,17 @@ import torch
 WORK = Path('/content/drive/MyDrive/cs260d')  # 改为自己可访问的目录
 CKPT = str(WORK / 'resnet18_cifar10.pt')
 DATA = str(WORK / 'data')
-NAME = 'teammate_name_t4'                    # 改成自己的名字/运行环境
+NAME = 'audit_t4'                            # 使用独立的运行标识
 RESULTS = str(WORK / f'results_audit_{NAME}_phase1.jsonl')
 WORK.mkdir(parents=True, exist_ok=True)
-assert Path(CKPT).is_file(), f'请向队友索取已有 checkpoint：{CKPT}'
+assert Path(CKPT).is_file(), f'未找到已有 checkpoint，请检查路径：{CKPT}'
 assert torch.cuda.is_available(), '先启用 GPU runtime'
 print('GPU:', torch.cuda.get_device_name())
 print('Checkpoint SHA256:', file_sha256(CKPT))
 print('Journal:', RESULTS, '(已存在则恢复，绝不清空)')
 ```
 
-每位队友、每个并行 runtime 使用不同的 JSONL。**不要让两个 Colab 同时写同一个 Drive 文件。** 新文件名应与历史 `results_<name>.jsonl`、`results_diag.jsonl` 区分。
+每个并行 runtime 使用独立的 JSONL。**不要让两个 Colab 同时写同一个 Drive 文件。** 新文件名应与历史 `results_<name>.jsonl`、`results_diag.jsonl` 区分。
 
 ## 3. 先做 CPU 测试和 Notebook 一致性检查
 
@@ -129,7 +129,7 @@ OUT = str(WORK / f'audit_figures_{NAME}_{datetime.now().strftime("%Y%m%d_%H%M%S"
 print('查看 summary.csv，以及 figure_manifest.json 指向的各配置图片：', OUT)
 ```
 
-不同 epochs、重选、weights、alpha、训练参数及硬件分别输出。默认拒绝覆盖已有图表。不要使用旧的全局 wildcard 无意混入所有队友/历史文件。
+不同 epochs、重选、weights、alpha、训练参数及硬件分别输出。默认拒绝覆盖已有图表。不要使用旧的全局 wildcard 无意混入其他运行或历史文件。
 
 ## 8. Colab 断线后恢复
 
@@ -155,7 +155,7 @@ print(subprocess.check_output(['git', '-C', str(REPO), 'rev-parse', 'HEAD'], tex
 
 CLI 工作流也支持 detached commit 恢复，不依赖 embedded Notebook。旧 Notebook 仅作为历史档案，不用于运行新审计实验。
 
-## 10. 队友需要提供的文件
+## 10. 历史文件与运行记录
 
 - 共享的原始 `resnet18_cifar10.pt` 和 SHA256；如有多个版本，提供各自路径/hash及使用范围。
 - 原始 `results_<name>.jsonl`（主实验、15/30 epochs、重选、3/6 epochs full baseline）。
