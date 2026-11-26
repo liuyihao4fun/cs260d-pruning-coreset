@@ -134,13 +134,14 @@ The CSVs are exports of the raw per-run JSON lines in `results/raw/` (343 record
 **Dense checkpoint.** All runs start from one dense ResNet-18 (93.67%), published as a release asset rather than in git:
 
 ```bash
-mkdir -p checkpoints
-curl -L -o checkpoints/resnet18_cifar10.pt \
-  https://github.com/liuyihao4fun/cs260d-pruning-coreset/releases/download/checkpoint-v1/resnet18_cifar10.pt
+# needs repo access: run `gh auth login` first (the repo may be private)
+gh release download checkpoint-v1 -R liuyihao4fun/cs260d-pruning-coreset -D checkpoints
 shasum -a 256 checkpoints/resnet18_cifar10.pt   # 4e9906b77a825e706931c6259997cd2baf3a8980c9c0d4b46945386ed52daebf
 ```
 
-In Colab, download it into your Drive folder (for example `MyDrive/cs260d/`) and point `--ckpt` at it.
+Without the `gh` CLI, sign in to GitHub and download `resnet18_cifar10.pt` from the
+[checkpoint-v1 release page](https://github.com/liuyihao4fun/cs260d-pruning-coreset/releases/tag/checkpoint-v1).
+In Colab, upload it to your Drive folder (for example `MyDrive/cs260d/`) and point `--ckpt` at it.
 
 ## Team conventions
 - Model weights and datasets never go into git (`.gitignore`): the checkpoint is a release asset, and CIFAR-10 downloads automatically.
