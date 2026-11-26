@@ -64,7 +64,7 @@ drive.mount('/content/drive')
 WORK = '/content/drive/MyDrive/cs260d'        # shared folder for checkpoint + results
 CKPT = f'{WORK}/resnet18_cifar10.pt'
 DATA = f'{WORK}/data'                         # CIFAR cached on Drive: downloaded once, reused by later sessions
-NAME = 'me'                                   # <-- change to your name so teammates' results don't collide
+NAME = 'me'                                   # <-- use a unique identifier for each runtime
 RESULTS = f'{WORK}/results_audit_{NAME}.jsonl'
 import os; os.makedirs(WORK, exist_ok=True)
 """)
@@ -79,7 +79,7 @@ for p in files:
 md("## 3. Require the existing dense checkpoint (never train it automatically)")
 code("""
 import os
-assert os.path.isfile(CKPT), f'Ask your teammate for the existing checkpoint: {CKPT}'
+assert os.path.isfile(CKPT), f'Existing checkpoint not found; check the path: {CKPT}'
 from src.audit import file_sha256
 print('checkpoint:', CKPT, 'SHA256:', file_sha256(CKPT))
 """)
@@ -94,7 +94,7 @@ md("""
 Large historical grids below are disabled by default. Use COLAB_RUN_GUIDE.md for a small audit grid.
 After disconnect, rerun setup with the same commit, checkpoint, flags and journal path.
 Only completed v2 runs are skipped; interrupted runs restart from the dense checkpoint.
-Use a separate journal for each teammate/runtime; do not write concurrently to one file.
+Use a separate journal for each runtime; do not write concurrently to one file.
 Split work with SHARD/NUM_SHARDS only when intentionally running a larger grid.
 """)
 code("""

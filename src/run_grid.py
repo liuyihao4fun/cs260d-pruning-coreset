@@ -6,7 +6,7 @@
 
 * Only completed, verified v2 identities in --results are skipped. After a Colab
   disconnect, re-run the same command/commit; incomplete runs restart from dense.
-* --shard i --num_shards 3 splits the grid between three teammates/accounts:
+* --shard i --num_shards 3 splits the grid into three independent shards:
   each person runs a different shard into their own results file. Never use
   concurrent writers in different Colab runtimes for the same Drive journal.
 * 'full' (100% data) is run once per sparsity/seed regardless of --fracs.

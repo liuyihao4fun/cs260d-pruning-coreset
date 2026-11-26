@@ -97,7 +97,7 @@ python -m src.train_dense --epochs 40 --out checkpoints/resnet18_cifar10.pt
 # 2. one experiment
 python -m src.finetune --ckpt checkpoints/resnet18_cifar10.pt --sparsity 0.9 --method craig --frac 0.1
 
-# 3. a grid (resumable; --shard/--num_shards split it across teammates)
+# 3. a grid (resumable; --shard/--num_shards split it across independent runs)
 python -m src.run_grid --ckpt checkpoints/resnet18_cifar10.pt --sparsities 0.9 \
     --methods full random craig el2n damage_fl --fracs 0.05 0.1 0.2 --seeds 0 1 2
 
@@ -139,7 +139,7 @@ results/
 
 The raw per-run JSON lines (with full accuracy curves) live on Google Drive; the CSVs here are exports.
 
-## Team conventions
+## Result storage conventions
 - Model weights and datasets never go into git (`.gitignore`); keep them on Drive.
-- Each teammate writes to their own results file (`results_<name>.jsonl`); `plot.py` merges them.
+- Each independent runtime writes to its own results file (`results_<name>.jsonl`); `plot.py` merges them.
 - Pull before you push; keep commits small.
