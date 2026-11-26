@@ -154,6 +154,6 @@ Without the `gh` CLI, sign in to GitHub and download `resnet18_cifar10.pt` from 
 In Colab, upload it to your Drive folder (for example `MyDrive/cs260d/`) and point `--ckpt` at it.
 
 ## Result storage conventions
-- Model weights and datasets never go into git (`.gitignore`): the checkpoint is a release asset, and CIFAR-10 downloads automatically.
+- Model weights and datasets never go into git (`.gitignore`); keep them on Drive.
 - Each independent runtime writes to its own results file (`results_<name>.jsonl`); `plot.py` merges them.
 - Pull before you push; keep commits small.
