@@ -27,7 +27,7 @@ Pipeline: dense ResNet-18 (CIFAR-10, 93.67%) → global magnitude pruning (accur
 | `damage_topk` | samples whose loss increased most due to pruning |
 | `damage_fl` | **ours**: CRAIG objective where each sample's coverage is weighted by `alpha + damage_i / mean(damage)` |
 
-## Experiments (343 runs)
+## Experiments (358 runs)
 
 | part | grid | runs |
 |---|---|---|
@@ -36,6 +36,7 @@ Pipeline: dense ResNet-18 (CIFAR-10, 93.67%) → global magnitude pruning (accur
 | Re-selection (extra) | subset re-chosen every 5 epochs: sparsity {90, 95, 98}% × {random, craig, damage_fl} × {5, 10, 20}%, 3 seeds, 30 epochs | 81 |
 | Weight diagnostics (extra) | 4 re-selection runs that log how skewed the CRAIG weights are at each selection | 4 |
 | Equal compute (extra) | full data for 6 / 3 epochs (same SGD steps as a 20% / 10% subset for 30 epochs), 3 sparsities, 3 seeds | 18 |
+| Cost (extra) | 95% sparsity, 20% data: random, craig, damage_fl, random re-selected, full data 6 ep; 3 seeds, one T4 session, separate scoring / selection / training timers | 15 |
 
 Fine-tuning: SGD (lr 0.01, momentum 0.9, wd 5e-4), batch 128, cosine schedule, random crop + flip.
 Full-data runs use the same number of epochs, i.e. about 5× more steps than the 20% subsets.
@@ -71,9 +72,13 @@ Test accuracy (%) with 20% of the data, 30 epochs, mean of 3 seeds:
   one-shot subset by 0.7–2.5 points and random re-selection by 0.2–0.5; even 3 epochs (half the steps)
   beats the best one-shot 20% subset. So subsets help when the *data* is limited, not to save compute
   ([equal_compute_full.csv](results/equal_compute_full.csv)).
+- **Cost (extra, one T4):** at 95% sparsity with 20% data, CRAIG and damage_fl add 36–42 s of scoring and
+  selection to a 121 s fine-tune (+32–37%); damage_fl buys +0.39 points over random for it. For the same
+  ~2,370 steps and about the same time as one-shot random, full data for 6 epochs and random re-selection are
+  1.4 and 1.2 points better ([cost_95_20.csv](results/cost_95_20.csv), [figure](results/cost_vs_acc.png)).
 - **Limits:** one model and dataset, last-layer gradient proxy, alpha = 1 only, no CREST implementation.
 
-Per-run numbers are in [`results/`](results/) (`all_runs.csv`, `reselect_runs.csv`, `reselect_diag.csv`, `equal_compute_full.csv`);
+Per-run numbers are in [`results/`](results/) (`all_runs.csv`, `reselect_runs.csv`, `reselect_diag.csv`, `equal_compute_full.csv`, `cost_95_20.csv`);
 details and analysis are in the report.
 
 ## Quick start (Colab)
@@ -128,6 +133,7 @@ src/
 scripts/
   build_notebook.py   regenerates the Colab notebook from src/
   plot_reselect.py    re-selection figures and summary
+  cost_analysis.py    cost table and accuracy-vs-cost figure from an audit journal
 notebooks/colab_run.ipynb   Colab launcher
 results/
   all_runs.csv, summary_all.csv        main + training-budget runs (per seed / mean ± std)
@@ -137,23 +143,15 @@ results/
   equal_compute_full.csv               full data for 6 / 3 epochs (equal-step baseline)
   raw/results_me.jsonl                 raw record of all 339 runs (config, accuracy curve, timing)
   raw/results_diag.jsonl               raw record of the 4 weight-diagnostic runs
+  cost_95_20.csv, cost_vs_acc.png      cost experiment (mean ± std over 3 seeds)
+  raw/results_audit_t4_cost95_20.jsonl raw audit journal of the 15 cost runs
 ```
 
-The CSVs are exports of the raw per-run JSON lines in `results/raw/` (343 records, one per run, with full accuracy curves).
+The CSVs are exports of the raw per-run JSON lines in `results/raw/` (one record per run, with full accuracy curves).
 
-**Dense checkpoint.** All runs start from one dense ResNet-18 (93.67%), published as a release asset rather than in git:
-
-```bash
-# needs repo access: run `gh auth login` first (the repo may be private)
-gh release download checkpoint-v1 -R liuyihao4fun/cs260d-pruning-coreset -D checkpoints
-shasum -a 256 checkpoints/resnet18_cifar10.pt   # 4e9906b77a825e706931c6259997cd2baf3a8980c9c0d4b46945386ed52daebf
-```
-
-Without the `gh` CLI, sign in to GitHub and download `resnet18_cifar10.pt` from the
-[checkpoint-v1 release page](https://github.com/liuyihao4fun/cs260d-pruning-coreset/releases/tag/checkpoint-v1).
-In Colab, upload it to your Drive folder (for example `MyDrive/cs260d/`) and point `--ckpt` at it.
+**Dense checkpoint.** All runs start from one dense ResNet-18 (93.67%), attached to the [checkpoint-v1 release](https://github.com/liuyihao4fun/cs260d-pruning-coreset/releases/tag/checkpoint-v1) (SHA256 `4e9906b7…`); download it to your Drive folder and point `--ckpt` at it.
 
 ## Result storage conventions
-- Model weights and datasets never go into git (`.gitignore`); keep them on Drive.
+- Model weights and datasets never go into git (`.gitignore`): the checkpoint is a release asset, and CIFAR-10 downloads automatically.
 - Each independent runtime writes to its own results file (`results_<name>.jsonl`); `plot.py` merges them.
 - Pull before you push; keep commits small.

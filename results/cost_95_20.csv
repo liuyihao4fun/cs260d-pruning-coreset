@@ -1,0 +1,6 @@
+strategy,seeds,final_acc,final_acc_std,scoring_time,selection_time,train_time,cost_time,evaluation_time,total_wall_time,sgd_steps,unique_samples_seen,gpu
+"random, 20%",3,91.22,0.1,0.0,0.01,120.75,120.76,34.68,155.96,2369.0,10000.0,Tesla T4
+"full data, 6 ep",3,92.65,0.06,0.0,0.0,123.32,123.32,9.05,132.98,2346.0,50000.0,Tesla T4
+"random, 20%, re-select every 5 ep",3,92.44,0.29,0.0,0.02,123.58,123.61,35.42,159.64,2368.67,36860.0,Tesla T4
+"craig, 20%",3,91.3,0.06,5.53,30.89,123.37,159.78,35.26,195.5,2368.33,10000.0,Tesla T4
+"damage_fl, 20%",3,91.61,0.06,11.21,30.81,123.23,165.26,35.22,200.99,2368.33,10000.0,Tesla T4
