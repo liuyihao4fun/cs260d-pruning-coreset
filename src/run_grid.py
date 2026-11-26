@@ -4,11 +4,11 @@
         --results /content/drive/MyDrive/cs260d/results.jsonl \
         --sparsities 0.9 --methods random craig el2n damage_fl --fracs 0.05 0.1 0.2 --seeds 0 1 2
 
-* Runs whose key already appears in --results are skipped, so after a Colab
-  disconnect just re-run the same command.
+* Only completed, verified v2 identities in --results are skipped. After a Colab
+  disconnect, re-run the same command/commit; incomplete runs restart from dense.
 * --shard i --num_shards 3 splits the grid between three teammates/accounts:
-  each person runs a different shard into their own results file (or the
-  same shared Drive file - appends are line-sized).
+  each person runs a different shard into their own results file. Never use
+  concurrent writers in different Colab runtimes for the same Drive journal.
 * 'full' (100% data) is run once per sparsity/seed regardless of --fracs.
 * The dataset is loaded onto the GPU once and reused by every run.
 """
@@ -16,8 +16,9 @@ import argparse
 import itertools
 
 from .data import load_cifar
-from .finetune import ALL_METHODS, build_parser, run, run_key
+from .finetune import ALL_METHODS, build_parser, run
 from .utils import get_device, load_jsonl
+from .audit import completed_keys, experiment_identity, file_sha256, identity_key, source_sha256
 
 
 def main():
@@ -40,18 +41,29 @@ def main():
             a = argparse.Namespace(**vars(base))
             a.sparsity, a.method, a.frac, a.seed = sp, m, fr, seed
             configs.append(a)
+    if grid_args.num_shards < 1 or not 0 <= grid_args.shard < grid_args.num_shards:
+        g.error("require num_shards >= 1 and 0 <= shard < num_shards")
     configs = configs[grid_args.shard::grid_args.num_shards]
 
-    done = {r["key"] for r in load_jsonl(base.results)}
-    todo = [a for a in configs if run_key(a) not in done]
+    records = load_jsonl(base.results)
+    done = completed_keys(records)
+    checkpoint_hash, source_hash = file_sha256(base.ckpt), source_sha256()
+    keyed = [(a, identity_key(experiment_identity(a, checkpoint_hash, source_hash))) for a in configs]
+    todo = [(a, key) for a, key in keyed if key not in done]
+    legacy = sum(r.get("schema_version") != 2 and "final_acc" in r for r in records)
+    if legacy:
+        print(f"{legacy} legacy completions retained; missing v2 provenance, so they do not skip new runs")
     print(f"{len(configs)} runs in this shard, {len(configs) - len(todo)} already done, {len(todo)} to go")
     if grid_args.dry_run:
-        for a in todo:
-            print("  ", run_key(a))
+        for a, key in todo:
+            print(f"  {key} sp={a.sparsity} method={a.method} frac={a.frac} epochs={a.epochs} seed={a.seed} rs={a.reselect_every} uniform={a.no_weights}")
+        return
+
+    if not todo:
         return
 
     data = load_cifar(base.dataset, base.data_root, get_device(), base.limit_train)
-    for i, a in enumerate(todo, 1):
+    for i, (a, _) in enumerate(todo, 1):
         print(f"\n=== run {i}/{len(todo)} ===")
         run(a, data=data)
 
