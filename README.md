@@ -2,6 +2,16 @@
 
 CS 260D (Large-Scale ML, Fall 2026) final project.
 
+**Phase-1 experiment audit:** new runs should follow [COLAB_RUN_GUIDE.md](COLAB_RUN_GUIDE.md)
+on `fix/experiment-audit`. [EXPERIMENT_AUDIT.md](EXPERIMENT_AUDIT.md) documents versioned
+identities, append-only recovery, metadata and timing semantics. Existing CSVs, figures
+and accuracy claims below are historical exports, not newly measured audit results.
+The original launcher is preserved as `notebooks/colab_run_legacy.ipynb`; the active
+Notebook uses the audit code, requires an existing checkpoint and disables historical
+large grids by default. Legacy JSONL cannot skip v2 runs, and v2 selection timing is
+not directly comparable with historical selection timing. Run the CPU checks with
+`python -m unittest discover -s tests -v` and `python scripts/build_notebook.py --check`.
+
 **Question:** after magnitude pruning, the network must be fine-tuned to recover accuracy.
 How much of the training set does that fine-tuning really need, and which samples should we pick?
 

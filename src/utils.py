@@ -1,12 +1,13 @@
-import json
-import os
 import random
+import time
+from contextlib import contextmanager
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 
 from .data import GpuLoader
+from .audit import append_jsonl, load_jsonl
 
 
 def set_seed(seed):
@@ -60,14 +61,20 @@ def per_sample_outputs(model, x, y, dataset, device, batch_size=1000):
     return torch.cat(losses), torch.cat(probs), torch.cat(feats)
 
 
-def append_jsonl(path, record):
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    with open(path, "a") as f:
-        f.write(json.dumps(record) + "\n")
+def synchronize(device):
+    if device == "cuda":
+        torch.cuda.synchronize()
+    elif device == "mps":
+        torch.mps.synchronize()
 
 
-def load_jsonl(path):
-    if not os.path.exists(path):
-        return []
-    with open(path) as f:
-        return [json.loads(line) for line in f if line.strip()]
+@contextmanager
+def timed(timings, name, device):
+    """Elapsed wall time with device work synchronized at both boundaries."""
+    synchronize(device)
+    start = time.perf_counter()
+    try:
+        yield
+    finally:
+        synchronize(device)
+        timings[name] = timings.get(name, 0.0) + time.perf_counter() - start
